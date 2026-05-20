@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fpga-flexible-poc
+spec:
+  hostNetwork: true
+  containers:
+  - name: bcpnn-engine
+    image: wasi-fpga:v2
+    imagePullPolicy: Never
+    securityContext:
+      privileged: true
+    workingDir: /app
+    env:
+      - name: VIDEO_NAME
+        value: "output.avi"
+      - name: XCLBIN_NAME
+        value: "BCPNN_infer_float.xclbin"
+      - name: WEIGHTS_NAME
+        value: "alvis_fullmnist_32x128_64x64_eps-4.bin"
+      - name: LD_LIBRARY_PATH
+        value: "/lib:/usr/lib/aarch64-linux-gnu:/usr/local/lib"
+      - name: WASMEDGE_PLUGIN_PATH
+        value: "/opt/wasmedge/plugins/libwasi_fpga.so"
+    
+    command: ["/bin/bash", "-c"]
+    args: 
+      - |
+        echo '🎬 RUNNING VIDEO MODE'; /usr/local/bin/avi_processor "/data/video_input/$VIDEO_NAME" "/data/PAC_container/hwconfig/mnist_float/zcu104/$XCLBIN_NAME" "/data/TrainedWeight/$WEIGHTS_NAME"
+
+    volumeMounts:
+    - mountPath: /dev
+      name: dev-dir
+    - mountPath: /data
+      name: firmware-data
+    - mountPath: /usr/local/bin/avi_processor
+      name: rust-binary
+    - mountPath: /app/wasm
+      name: wasm-dir
+    - mountPath: /opt/wasmedge/plugins/libwasi_fpga.so
+      name: good-plugin
+    - mountPath: /lib
+      name: host-lib
+    - mountPath: /usr/lib/aarch64-linux-gnu
+      name: host-usr-lib-aarch
+    - mountPath: /etc/OpenCL
+      name: host-etc-opencl
+
+  volumes:
+  - name: dev-dir
+    hostPath: 
+      path: /dev
+      type: Directory
+  - name: firmware-data
+    hostPath: 
+      path: /home/ubuntu/bcpnn_artifacts
+      type: DirectoryOrCreate
+  - name: rust-binary
+    hostPath: 
+      path: /home/ubuntu/docker-build_v2/avi_processor
+      type: File
+  - name: wasm-dir
+    hostPath: 
+      path: /home/ubuntu/docker-build_v2/wasm
+      type: Directory
+  - name: good-plugin
+    hostPath: 
+      path: /usr/local/lib/wasmedge/libwasi_fpga.so
+      type: File
+  - name: host-lib
+    hostPath: 
+      path: /lib
+      type: Directory
+  - name: host-usr-lib-aarch
+    hostPath: 
+      path: /usr/lib/aarch64-linux-gnu
+      type: Directory
+  - name: host-etc-opencl
+    hostPath: 
+      path: /etc/OpenCL
+      type: DirectoryOrCreate
+
+  restartPolicy: Never

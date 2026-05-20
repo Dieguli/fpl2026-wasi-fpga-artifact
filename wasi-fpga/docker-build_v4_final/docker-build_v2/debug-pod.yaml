@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fpga-debug-shell
+spec:
+  hostNetwork: true
+  hostIPC: true
+  hostPID: true
+  containers:
+  - name: debug-shell
+    image: wasi-fpga:v1
+    imagePullPolicy: Never
+    securityContext:
+      privileged: true
+    
+    command: ["/bin/bash", "-c", "sleep infinity"]
+    
+    env:
+    - name: LD_LIBRARY_PATH
+      value: "/host/lib:/host/lib/aarch64-linux-gnu:/usr/local/lib:/usr/lib"
+    - name: XILINX_XRT
+      value: "/usr"
+    
+    # Paths for manual testing
+    - name: MY_XCLBIN
+      value: "/data/PAC_container/hwconfig/mnist_float/zcu104/BCPNN_infer_float.xclbin"
+    - name: MY_WEIGHTS
+      value: "/data/TrainedWeight/alvis_fullmnist_32x128_64x64_eps-4.bin"
+    - name: MY_WASM
+      value: "/app/test_bcpnn_infer.wasm"
+
+    volumeMounts:
+    - mountPath: /dev
+      name: dev-dir
+    - mountPath: /data
+      name: firmware-data
+    - mountPath: /host/lib
+      name: host-usr-lib
+    - mountPath: /etc/OpenCL
+      name: host-etc-opencl
+    - mountPath: /lib/firmware
+      name: host-firmware
+    - mountPath: /sys
+      name: host-sys
+    - mountPath: /usr/share/xrt
+      name: host-usr-share-xrt
+    - mountPath: /sys/firmware
+      name: host-sys-firmware
+    - mountPath: /run
+      name: host-run
+    - mountPath: /tmp
+      name: host-tmp
+    
+    # --- THE TWO KEY MOUNTS FOR XBUTIL ---
+    - mountPath: /usr/bin/xbutil
+      name: host-xbutil-bin
+    - mountPath: /usr/bin/unwrapped
+      name: host-xbutil-unwrapped
+    # ------------------------------------------
+
+  volumes:
+  - name: dev-dir
+    hostPath: {path: /dev}
+  - name: firmware-data
+    hostPath: {path: /home/ubuntu/bcpnn_artifacts}
+  - name: host-usr-lib
+    hostPath: {path: /usr/lib}
+  - name: host-etc-opencl
+    hostPath: {path: /etc/OpenCL}
+  - name: host-firmware
+    hostPath: {path: /lib/firmware}
+  - name: host-sys
+    hostPath: {path: /sys}
+  - name: host-usr-share-xrt
+    hostPath: {path: /usr/share/xrt}
+  - name: host-sys-firmware
+    hostPath: {path: /sys/firmware}
+  - name: host-run
+    hostPath: {path: /run}
+  - name: host-tmp
+    hostPath: {path: /tmp}
+  
+  # --- DEFINITION OF XBUTIL VOLUMES ---
+  - name: host-xbutil-bin
+    hostPath: {path: /usr/bin/xbutil}
+  - name: host-xbutil-unwrapped
+    hostPath: {path: /usr/bin/unwrapped}
+  # ---------------------------------------------
+  
+  restartPolicy: Never

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fpga-params
+  namespace: default
+data:
+  # Define paths here. If they change, edit this file only.
+  XCLBIN_PATH: "/data/PAC_container/hwconfig/mnist_float/zcu104/BCPNN_infer_float.xclbin"
+  WEIGHTS_PATH: "/data/TrainedWeight/alvis_fullmnist_32x128_64x64_eps-4.bin"
+  WASM_FILE: "/app/test_bcpnn_infer.wasm"

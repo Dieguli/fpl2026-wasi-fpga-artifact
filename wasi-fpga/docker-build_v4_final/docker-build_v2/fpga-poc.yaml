@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wasi-fpga-poc
+spec:
+  hostNetwork: true
+  containers:
+  - name: fpga-container
+    image: wasi-fpga:v2
+    imagePullPolicy: Never
+    securityContext:
+      privileged: true
+    env:
+    # 1. Clean library paths (as arranged on the host)
+    - name: LD_LIBRARY_PATH
+      value: "/lib:/usr/lib/aarch64-linux-gnu:/usr/local/lib"
+    # 2. The plugin we just validated
+    - name: WASMEDGE_PLUGIN_PATH
+      value: "/opt/wasmedge/plugins/libwasi_fpga.so"
+    
+    # Direct execution command for the PoC
+    command: ["/usr/local/bin/wasmedge"]
+    args: [
+      "--dir", "/data:/data",
+      "/app/test_bcpnn_infer.wasm",
+      "/data/PAC_container/hwconfig/mnist_float/zcu104/BCPNN_infer_float.xclbin",
+      "/data/TrainedWeight/alvis_fullmnist_32x128_64x64_eps-4.bin"
+    ]
+
+    volumeMounts:
+    - mountPath: /dev
+      name: dev-dir
+    - mountPath: /data
+      name: firmware-data
+    - mountPath: /lib
+      name: host-lib
+    - mountPath: /usr/lib/aarch64-linux-gnu
+      name: host-usr-lib-aarch
+    - mountPath: /opt/wasmedge/plugins/libwasi_fpga.so
+      name: good-plugin
+    - mountPath: /etc/OpenCL
+      name: host-etc-opencl
+
+  volumes:
+  - name: dev-dir
+    hostPath: {path: /dev}
+  - name: firmware-data
+    hostPath: {path: /home/ubuntu/bcpnn_artifacts}
+  - name: host-lib
+    hostPath: {path: /lib}
+  - name: host-usr-lib-aarch
+    hostPath: {path: /usr/lib/aarch64-linux-gnu}
+  - name: good-plugin
+    hostPath: {path: /usr/local/lib/wasmedge/libwasi_fpga.so}
+  - name: host-etc-opencl
+    hostPath: {path: /etc/OpenCL}
+  
+  restartPolicy: Never

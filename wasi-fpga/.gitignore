@@ -1,0 +1,19 @@
+# Ignore everything by default (allowlist approach)
+/*
+
+# Keep this .gitignore tracked
+!/.gitignore
+
+# Allow only these directories and their contents
+!/wasm/
+!/src/
+!/docker-build_v4_final/
+
+# Allow only these root files
+!/Cargo.toml
+!/error.rs
+!/wrapper.h
+!/BENCHMARKING_GUIDE.md
+
+# Keep git metadata
+!.git/

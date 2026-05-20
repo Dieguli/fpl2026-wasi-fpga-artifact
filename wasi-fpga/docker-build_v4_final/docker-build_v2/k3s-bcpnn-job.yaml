@@ -1,0 +1,121 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wasi-fpga-inference
+spec:
+  template:
+    spec:
+      # --- HOST ACCESS CONFIGURATION ---
+      hostNetwork: true
+      hostIPC: true      # <--- NEW: Vital for XRT
+      hostPID: true      # <--- NEW: Vital for XRT
+      # ---------------------------------------
+      
+      containers:
+      - name: wasi-fpga
+        image: wasi-fpga:v2
+        imagePullPolicy: Never
+        securityContext:
+          privileged: true
+        
+        env:
+        - name: WASMEDGE_PLUGIN_PATH
+          value: "/usr/local/lib/libwasi_fpga.so"
+        - name: XILINX_XRT
+          value: "/opt/xilinx/xrt"
+        - name: RUST_BACKTRACE
+          value: "1"
+        - name: LD_LIBRARY_PATH
+          value: "/usr/local/lib:/opt/xilinx/xrt/lib:/usr/lib:/host/lib:/host/lib/aarch64-linux-gnu"
+        
+        - name: MY_XCLBIN
+          valueFrom:
+            configMapKeyRef:
+              name: fpga-params
+              key: XCLBIN_PATH
+        - name: MY_WEIGHTS
+          valueFrom:
+            configMapKeyRef:
+              name: fpga-params
+              key: WEIGHTS_PATH
+        - name: MY_WASM
+          valueFrom:
+            configMapKeyRef:
+              name: fpga-params
+              key: WASM_FILE
+
+        command: ["/usr/local/bin/wasmedge"]
+        args: 
+          - "--dir"
+          - ".:."
+          - "--dir"
+          - "/data:/data"
+          - "$(MY_WASM)"
+          - "$(MY_XCLBIN)"
+          - "$(MY_WEIGHTS)"
+
+        volumeMounts:
+        - mountPath: /dev
+          name: dev-dir
+        - mountPath: /opt/xilinx
+          name: xilinx-dir
+        - mountPath: /data
+          name: firmware-data
+        - mountPath: /host/lib
+          name: host-usr-lib
+        - mountPath: /etc/OpenCL
+          name: host-etc-opencl
+        - mountPath: /lib/firmware
+          name: host-firmware
+        - mountPath: /sys
+          name: host-sys
+        - mountPath: /usr/share/xrt
+          name: host-usr-share-xrt
+        - mountPath: /sys/firmware
+          name: host-sys-firmware
+        - mountPath: /run/udev
+          name: host-run-udev
+        - mountPath: /run
+          name: host-run
+        - mountPath: /tmp
+          name: host-tmp
+
+      volumes:
+      - name: dev-dir
+        hostPath:
+          path: /dev
+      - name: xilinx-dir
+        hostPath:
+          path: /opt/xilinx
+      - name: firmware-data
+        hostPath:
+          path: /home/ubuntu/bcpnn_artifacts
+      - name: host-usr-lib
+        hostPath:
+          path: /usr/lib
+      - name: host-etc-opencl
+        hostPath:
+          path: /etc/OpenCL
+      - name: host-firmware
+        hostPath:
+          path: /lib/firmware
+      - name: host-sys
+        hostPath:
+          path: /sys
+      - name: host-usr-share-xrt
+        hostPath:
+          path: /usr/share/xrt
+      - name: host-sys-firmware
+        hostPath:
+          path: /sys/firmware
+      - name: host-run-udev
+        hostPath:
+          path: /run/udev
+      - name: host-run
+        hostPath:
+          path: /run
+      - name: host-tmp
+        hostPath:
+          path: /tmp
+      
+      restartPolicy: Never

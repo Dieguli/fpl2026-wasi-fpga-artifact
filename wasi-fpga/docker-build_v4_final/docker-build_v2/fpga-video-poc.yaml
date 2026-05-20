@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bcpnn-video-poc
+spec:
+  hostNetwork: true
+  containers:
+  - name: video-processor
+    image: wasi-fpga:v2
+    imagePullPolicy: Never
+    securityContext:
+      privileged: true
+    env:
+    - name: LD_LIBRARY_PATH
+      value: "/lib:/usr/lib/aarch64-linux-gnu:/usr/local/lib"
+    - name: WASMEDGE_PLUGIN_PATH
+      value: "/opt/wasmedge/plugins/libwasi_fpga.so"
+    
+    # Install ffmpeg before running the Rust binary
+    command: ["/bin/bash", "-c"]
+    args: 
+      - |
+        apt-get update && apt-get install -y ffmpeg
+        /usr/local/bin/avi_processor \
+        /data/video_input/output.avi \
+        /data/PAC_container/hwconfig/mnist_float/zcu104/BCPNN_infer_float.xclbin \
+        /data/TrainedWeight/alvis_fullmnist_32x128_64x64_eps-4.bin
+
+    volumeMounts:
+    - mountPath: /dev
+      name: dev-dir
+    - mountPath: /data
+      name: firmware-data
+    - mountPath: /usr/local/bin/avi_processor
+      name: rust-binary
+    # The binary expects the WASM at this specific path
+    - mountPath: /app/wasm/test_bcpnn_infer_video.wasm
+      name: wasm-module
+    - mountPath: /opt/wasmedge/plugins/libwasi_fpga.so
+      name: good-plugin
+    - mountPath: /lib
+      name: host-lib
+    - mountPath: /usr/lib/aarch64-linux-gnu
+      name: host-usr-lib-aarch
+    - mountPath: /etc/OpenCL
+      name: host-etc-opencl
+
+  volumes:
+  - name: dev-dir
+    hostPath: {path: /dev}
+  - name: firmware-data
+    hostPath: {path: /home/ubuntu/bcpnn_artifacts}
+  - name: rust-binary
+    hostPath: {path: /home/ubuntu/wasi-fpga-artifact/wasi-fpga/avi_processor/target/release/avi_processor}
+  - name: wasm-module
+    # hostPath: {path: /home/ubuntu/docker-build_v2/test_bcpnn_infer.wasm} 
+    hostPath: {path: /home/ubuntu/wasi-fpga-artifact/wasi-fpga/wasm/test_bcpnn_infer_video.wasm}
+  - name: good-plugin
+    hostPath: {path: /usr/local/lib/wasmedge/libwasi_fpga.so}
+  - name: host-lib
+    hostPath: {path: /lib}
+  - name: host-usr-lib-aarch
+    hostPath: {path: /usr/lib/aarch64-linux-gnu}
+  - name: host-etc-opencl
+    hostPath: {path: /etc/OpenCL}
+
+  restartPolicy: Never

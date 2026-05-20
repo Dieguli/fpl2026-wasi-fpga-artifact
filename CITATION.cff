@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this artifact, please cite the archived FPL 2026 artifact release."
+title: "WASI-FPGA Neuromorphic Inference Artifact for FPL 2026"
+type: software
+authors:
+  - name: "Anonymous artifact contributors"
+version: "0.1.0"
+date-released: "2026-05-20"
+license: "Apache-2.0"
+abstract: >
+  Artifact package for evaluating a WebAssembly System Interface extension
+  that exposes FPGA operations through WasmEdge, OpenCL, XRT, and K3s on a
+  Xilinx ZCU104 platform for BCPNN neuromorphic inference.
+keywords:
+  - FPGA
+  - WebAssembly
+  - WASI
+  - WasmEdge
+  - OpenCL
+  - XRT
+  - K3s
+  - neuromorphic computing
+  - BCPNN

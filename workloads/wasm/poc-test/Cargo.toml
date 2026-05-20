@@ -1,0 +1,15 @@
+[package]
+name = "poc-test"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anonymous artifact authors"]
+description = "Week 1 PoC test - validates WASM → WASI → XRT → FPGA chain"
+
+[profile.release]
+opt-level = "z"  # Optimize for size
+lto = true
+codegen-units = 1
+strip = true
+
+# This builds to wasm32-wasi target
+# Build with: cargo build --target wasm32-wasi --release
